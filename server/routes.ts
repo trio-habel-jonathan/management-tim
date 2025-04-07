@@ -85,40 +85,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // Authentication routes
-  app.post("/api/auth/register", validateBody(insertUserSchema), async (req, res) => {
-    try {
-      const { username, email } = req.body;
-      
-      // Check if username already exists
-      const existingUserByUsername = await storage.getUserByUsername(username);
-      if (existingUserByUsername) {
-        return res.status(400).json({ message: "Username already taken" });
-      }
-      
-      // Check if email already exists
-      const existingUserByEmail = await storage.getUserByEmail(email);
-      if (existingUserByEmail) {
-        return res.status(400).json({ message: "Email already in use" });
-      }
-      
-      const user = await storage.createUser(req.body);
-      
-      // Don't return password
-      const { password, ...userWithoutPassword } = user;
-      
-      // Set session
-      req.session.userId = user.id;
-      
-      res.status(201).json(userWithoutPassword);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to register user" });
-    }
-  });
+  // User registration is only allowed by admin, no public registration endpoint
   
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
       
+      // Hard-coded admin account
+      if (username === "admin" && password === "pass123") {
+        // Check if admin user exists in database
+        let adminUser = await storage.getUserByUsername("admin");
+        
+        // If admin doesn't exist, create it
+        if (!adminUser) {
+          adminUser = await storage.createUser({
+            username: "admin",
+            password: "pass123",
+            email: "admin@teamflow.com",
+            fullName: "Administrator",
+            role: "admin"
+          });
+        }
+        
+        // Set session
+        req.session.userId = adminUser.id;
+        
+        // Don't return password
+        const { password: _, ...userWithoutPassword } = adminUser;
+        
+        return res.status(200).json(userWithoutPassword);
+      }
+      
+      // For normal users, only let them log in if they exist
       const user = await storage.getUserByUsername(username);
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -176,6 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
         fullName: user.fullName || user.username,
         avatar: user.avatar,
+        role: user.role || 'member',
         userType: user.userType || 'normal'
       }));
       
@@ -183,6 +182,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting users:", error);
       res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+  
+  // Admin create user endpoint - only accessible by admin user
+  app.post("/api/users", requireAuth, validateBody(insertUserSchema), async (req, res) => {
+    try {
+      // Check if the current user is admin
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ message: "Only admins can create new users" });
+      }
+      
+      const { username, email } = req.body;
+      
+      // Check if username already exists
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      
+      // Check if email already exists
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+      
+      // Create the user
+      const user = await storage.createUser(req.body);
+      
+      // Don't return password
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+  
+  // Get a specific user
+  app.get("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+  
+  // Update user - only admin or the user themselves
+  app.put("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = await storage.getUser(req.session.userId!);
+      
+      // Only admins or the user themselves can update the user
+      if (req.session.userId !== userId && (!currentUser || currentUser.role !== "admin")) {
+        return res.status(403).json({ message: "Not authorized to update this user" });
+      }
+      
+      // Don't allow changing role unless admin
+      if (req.body.role && (!currentUser || currentUser.role !== "admin")) {
+        return res.status(403).json({ message: "Not authorized to change role" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, req.body);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+  
+  // Delete user - only admin
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = await storage.getUser(req.session.userId!);
+      
+      // Only admins can delete users
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ message: "Not authorized to delete users" });
+      }
+      
+      // Don't allow deleting self
+      if (req.session.userId === userId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      const success = await storage.deleteUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
   
@@ -207,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(team);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create team" });
+      res.status(500).json({ message: error.message });
     }
   });
   

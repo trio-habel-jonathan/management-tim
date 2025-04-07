@@ -46,7 +46,6 @@ export const teamMembers = pgTable("team_members", {
   teamId: integer("team_id").notNull(),
   userId: integer("user_id").notNull(),
   role: text("role").default("member").notNull(), // "admin", "member", "guest"
-  permissions: jsonb("permissions").default({}), // Store role-specific permissions
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 
@@ -54,7 +53,6 @@ export const insertTeamMemberSchema = createInsertSchema(teamMembers).pick({
   teamId: true,
   userId: true,
   role: true,
-  permissions: true,
 });
 
 // Projects table

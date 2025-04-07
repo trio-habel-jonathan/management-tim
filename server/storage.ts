@@ -21,6 +21,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   
   // Team operations
   getTeam(id: number): Promise<Team | undefined>;
@@ -155,6 +156,20 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...existingUser, ...user };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    // Delete user from teams first
+    const teamMembers = Array.from(this.teamMembers.values())
+      .filter(tm => tm.userId === id);
+    
+    // Remove user from all teams
+    for (const tm of teamMembers) {
+      this.teamMembers.delete(tm.id);
+    }
+    
+    // Delete the user
+    return this.users.delete(id);
   }
   
   // Team methods
@@ -424,6 +439,20 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
+  async deleteUser(id: number): Promise<boolean> {
+    // First remove user from all team memberships
+    await db
+      .delete(teamMembers)
+      .where(eq(teamMembers.userId, id));
+      
+    // Then delete the user
+    const result = await db
+      .delete(users)
+      .where(eq(users.id, id));
+      
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
   // Team methods
   async getTeam(id: number): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.id, id));
@@ -475,7 +504,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteTeam(id: number): Promise<boolean> {
     const result = await db.delete(teams).where(eq(teams.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // Team Members methods
@@ -511,7 +540,7 @@ export class DatabaseStorage implements IStorage {
           eq(teamMembers.userId, userId)
         )
       );
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   async updateTeamMemberRole(teamId: number, userId: number, role: string): Promise<TeamMember | undefined> {
@@ -554,7 +583,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteProject(id: number): Promise<boolean> {
     const result = await db.delete(projects).where(eq(projects.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // Task methods
@@ -600,7 +629,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteTask(id: number): Promise<boolean> {
     const result = await db.delete(tasks).where(eq(tasks.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // Comment methods
@@ -628,7 +657,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteComment(id: number): Promise<boolean> {
     const result = await db.delete(comments).where(eq(comments.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // File methods
@@ -655,7 +684,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteFile(id: number): Promise<boolean> {
     const result = await db.delete(files).where(eq(files.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
   
   // Message methods
@@ -683,7 +712,7 @@ export class DatabaseStorage implements IStorage {
   
   async deleteMessage(id: number): Promise<boolean> {
     const result = await db.delete(messages).where(eq(messages.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
