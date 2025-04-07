@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -148,6 +149,99 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   teamId: true,
   userId: true,
 });
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  teamMembers: many(teamMembers),
+  teams: many(teams, { relationName: "createdTeams" }),
+  tasks: many(tasks, { relationName: "assignedTasks" }),
+  comments: many(comments),
+  files: many(files, { relationName: "uploadedFiles" }),
+  messages: many(messages),
+}));
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [teams.createdBy],
+    references: [users.id],
+    relationName: "createdTeams",
+  }),
+  teamMembers: many(teamMembers),
+  projects: many(projects),
+  messages: many(messages),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [projects.teamId],
+    references: [teams.id],
+  }),
+  tasks: many(tasks),
+  files: many(files),
+}));
+
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [tasks.projectId],
+    references: [projects.id],
+  }),
+  assignee: one(users, {
+    fields: [tasks.assigneeId],
+    references: [users.id],
+    relationName: "assignedTasks",
+  }),
+  comments: many(comments),
+  files: many(files),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  task: one(tasks, {
+    fields: [comments.taskId],
+    references: [tasks.id],
+  }),
+  user: one(users, {
+    fields: [comments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const filesRelations = relations(files, ({ one }) => ({
+  project: one(projects, {
+    fields: [files.projectId],
+    references: [projects.id],
+  }),
+  task: one(tasks, {
+    fields: [files.taskId],
+    references: [tasks.id],
+  }),
+  uploader: one(users, {
+    fields: [files.uploadedBy],
+    references: [users.id],
+    relationName: "uploadedFiles",
+  }),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  team: one(teams, {
+    fields: [messages.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [messages.userId],
+    references: [users.id],
+  }),
+}));
 
 // Export types
 export type User = typeof users.$inferSelect;
