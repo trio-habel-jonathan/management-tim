@@ -24,16 +24,40 @@ declare module 'express-session' {
 
 const SessionStore = MemoryStore(session);
 
+// Helper function to convert date strings to actual Date objects
+const convertDatesToObjects = (body: any) => {
+  const newBody = { ...body };
+  
+  // Check for date fields and convert them from strings to Date objects
+  for (const key in newBody) {
+    // Check for common date field names
+    if (['startDate', 'dueDate', 'createdAt', 'updatedAt'].includes(key) && newBody[key] && typeof newBody[key] === 'string') {
+      try {
+        newBody[key] = new Date(newBody[key]);
+      } catch (e) {
+        // If date parsing fails, leave it as is (validation will catch it)
+        console.log(`Failed to parse date: ${key}=${newBody[key]}`);
+      }
+    }
+  }
+  
+  return newBody;
+};
+
 // Helper function to validate request body using zod schema
 const validateBody = <T>(schema: z.ZodType<T>) => {
   return (req: Request, res: Response, next: () => void) => {
     try {
-      req.body = schema.parse(req.body);
+      // Convert any date strings to Date objects before validation
+      const convertedBody = convertDatesToObjects(req.body);
+      req.body = schema.parse(convertedBody);
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.log("Validation error:", error.errors);
         res.status(400).json({ message: "Validation error", errors: error.errors });
       } else {
+        console.error("Internal server error during validation:", error);
         res.status(500).json({ message: "Internal server error" });
       }
     }
@@ -164,11 +188,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Team routes
   app.get("/api/teams", requireAuth, async (req, res) => {
+      console.log(req.session);
     try {
       const teams = await storage.getTeamsByUser(req.session.userId!);
       res.status(200).json(teams);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get teams" });
+      console.log("hi anjing");
+      res.status(500).json({ message: error.message });
     }
   });
   
@@ -194,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json(team);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get team" });
+      res.status(500).json({ message: "Failed to get team one" });
     }
   });
   
@@ -373,6 +399,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { teamId } = req.body;
       
+      // Log the request body for debugging
+      console.log("Project creation request body:", JSON.stringify(req.body));
+      
       // Check if team exists
       const team = await storage.getTeam(teamId);
       if (!team) {
@@ -387,11 +416,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to create project" });
       }
       
+      // Ensure dates are valid Date objects
+      if (req.body.startDate && !(req.body.startDate instanceof Date)) {
+        req.body.startDate = new Date(req.body.startDate);
+      }
+      
+      if (req.body.dueDate && !(req.body.dueDate instanceof Date)) {
+        req.body.dueDate = new Date(req.body.dueDate);
+      }
+      
       const project = await storage.createProject(req.body);
       
       res.status(201).json(project);
     } catch (error) {
-      res.status(500).json({ message: "Failed to create project" });
+      console.error("Failed to create project:", error);
+      res.status(500).json({ 
+        message: "Failed to create project", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
@@ -431,10 +473,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to update project" });
       }
       
-      const updatedProject = await storage.updateProject(project.id, req.body);
+      // Convert date fields to Date objects if they exist in request body
+      const projectData = convertDatesToObjects(req.body);
+      
+      // Log the processed data for debugging
+      console.log("Project update data:", JSON.stringify(projectData));
+      
+      const updatedProject = await storage.updateProject(project.id, projectData);
       res.status(200).json(updatedProject);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update project" });
+      console.error("Failed to update project:", error);
+      res.status(500).json({ 
+        message: "Failed to update project", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
@@ -505,6 +557,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { projectId } = req.body;
       
+      // Log the request body for debugging
+      console.log("Task creation request body:", JSON.stringify(req.body));
+      
       // Check if project exists
       const project = await storage.getProject(projectId);
       if (!project) {
@@ -519,19 +574,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to create task" });
       }
       
-      // Process the request body to handle date conversion
-      const taskData = {
-        ...req.body,
-        // Convert date strings to Date objects
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
-      };
+      // Use the more generic date conversion function
+      const taskData = convertDatesToObjects(req.body);
       
       const task = await storage.createTask(taskData);
       
       res.status(201).json(task);
     } catch (error) {
       console.error("Task creation error:", error);
-      res.status(500).json({ message: "Failed to create task" });
+      res.status(500).json({ 
+        message: "Failed to create task", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
@@ -583,18 +637,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to update task" });
       }
       
-      // Process the request body to handle date conversion
-      const taskData = {
-        ...req.body,
-        // Convert date strings to Date objects
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
-      };
+      // Use the more generic date conversion function
+      const taskData = convertDatesToObjects(req.body);
+      
+      // Log the processed data for debugging
+      console.log("Task update data:", JSON.stringify(taskData));
       
       const updatedTask = await storage.updateTask(task.id, taskData);
       res.status(200).json(updatedTask);
     } catch (error) {
       console.error("Task update error:", error);
-      res.status(500).json({ message: "Failed to update task" });
+      res.status(500).json({ 
+        message: "Failed to update task", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   

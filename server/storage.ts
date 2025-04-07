@@ -10,7 +10,8 @@ import {
   users, teams, teamMembers, projects, tasks, comments, files, messages
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, asc } from "drizzle-orm";
+import { eq, and, desc, sql, asc, inArray } from "drizzle-orm";
+
 
 export interface IStorage {
   // User operations
@@ -430,23 +431,22 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getTeamsByUser(userId: number): Promise<Team[]> {
-    // First get the team IDs that the user is a member of
     const teamMemberRecords = await db
       .select()
       .from(teamMembers)
       .where(eq(teamMembers.userId, userId));
-    
+
     if (teamMemberRecords.length === 0) {
       return [];
     }
-    
-    // Then get the actual teams
+
     const teamIds = teamMemberRecords.map(tm => tm.teamId);
+
     const teamsList = await db
       .select()
       .from(teams)
-      .where(sql`${teams.id} IN (${teamIds.join(',')})`);
-    
+      .where(inArray(teams.id, teamIds)); // ✅ FIX
+
     return teamsList;
   }
   

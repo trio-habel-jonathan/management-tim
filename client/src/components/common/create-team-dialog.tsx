@@ -37,7 +37,7 @@ interface CreateTeamDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) {
+export function CreateTeamDialog({ open, user, onOpenChange }: CreateTeamDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -47,6 +47,7 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
     defaultValues: {
       name: "",
       description: "",
+      createdBy: user?.id || 0
     },
   });
 
@@ -73,6 +74,7 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
+    console.log("created")
     createTeamMutation.mutate(data);
   }
 
@@ -87,7 +89,7 @@ export function CreateTeamDialog({ open, onOpenChange }: CreateTeamDialogProps) 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.log("Validation errors:", errors))} className="space-y-4">
             <FormField
               control={form.control}
               name="name"

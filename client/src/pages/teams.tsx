@@ -35,11 +35,12 @@ export default function TeamsPage() {
   const [isManageTeamOpen, setIsManageTeamOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
-
+console.log(user);
   // Fetch teams the user belongs to
   const { data: teams, isLoading } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
     enabled: !!user,
+    queryFn: () => apiRequest("GET", "/api/teams"), // <-- tambahkan ini
   });
 
   // Create a map to store team member count queries
@@ -65,6 +66,7 @@ export default function TeamsPage() {
       setTeamToDelete(null);
     },
     onError: (error) => {
+      console.error("Error fetching teams:", error);
       toast({
         variant: "destructive",
         title: "Failed to delete team",
@@ -220,7 +222,7 @@ export default function TeamsPage() {
                     </CardFooter>
                   </Card>
                 ))
-              ) : teams && teams.filter(team => team.createdBy === user?.id).length > 0 ? (
+              ) : Array.isArray(teams) && teams.filter(team => team.createdBy === user?.id).length > 0 ? (
                 teams
                   .filter(team => team.createdBy === user?.id)
                   .map(team => (
@@ -288,6 +290,7 @@ export default function TeamsPage() {
         {/* Create Team Dialog */}
         <CreateTeamDialog
           open={isCreateTeamOpen}
+          user={user}
           onOpenChange={setIsCreateTeamOpen}
         />
 
