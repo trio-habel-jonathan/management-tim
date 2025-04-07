@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   avatar: text("avatar"),
   role: text("role").default("member"),
+  userType: text("user_type").default("ordinary"), // "organization" or "ordinary"
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -21,6 +22,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fullName: true,
   avatar: true,
   role: true,
+  userType: true,
 });
 
 // Teams table
@@ -135,6 +137,23 @@ export const insertFileSchema = createInsertSchema(files).pick({
   uploadedBy: true,
 });
 
+// Team invitations table
+export const teamInvitations = pgTable("team_invitations", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull(),
+  userId: integer("user_id").notNull(),
+  invitedBy: integer("invited_by").notNull(),
+  status: text("status").default("pending"), // "pending", "accepted", "rejected"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTeamInvitationSchema = createInsertSchema(teamInvitations).pick({
+  teamId: true,
+  userId: true,
+  invitedBy: true,
+  status: true,
+});
+
 // Messages table
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -158,6 +177,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   comments: many(comments),
   files: many(files, { relationName: "uploadedFiles" }),
   messages: many(messages),
+  receivedInvitations: many(teamInvitations, { relationName: "invitationReceivers" }),
+  sentInvitations: many(teamInvitations, { relationName: "invitationSenders" }),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -169,6 +190,7 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   teamMembers: many(teamMembers),
   projects: many(projects),
   messages: many(messages),
+  invitations: many(teamInvitations),
 }));
 
 export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
@@ -232,6 +254,23 @@ export const filesRelations = relations(files, ({ one }) => ({
   }),
 }));
 
+export const teamInvitationsRelations = relations(teamInvitations, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamInvitations.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamInvitations.userId],
+    references: [users.id],
+    relationName: "invitationReceivers",
+  }),
+  inviter: one(users, {
+    fields: [teamInvitations.invitedBy],
+    references: [users.id],
+    relationName: "invitationSenders",
+  }),
+}));
+
 export const messagesRelations = relations(messages, ({ one }) => ({
   team: one(teams, {
     fields: [messages.teamId],
@@ -267,3 +306,6 @@ export type InsertFile = z.infer<typeof insertFileSchema>;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type TeamInvitation = typeof teamInvitations.$inferSelect;
+export type InsertTeamInvitation = z.infer<typeof insertTeamInvitationSchema>;

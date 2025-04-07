@@ -118,6 +118,8 @@ export function CreateTaskDialog({
       ...data,
       projectId: projectId || data.projectId,
       order: 0, // Set to 0 by default, it will be updated when added to a column
+      // Convert string date to Date object before sending to server
+      dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
     };
     
     createTaskMutation.mutate(taskData);
@@ -173,6 +175,7 @@ export function CreateTaskDialog({
                     <Textarea 
                       placeholder="Details about the task..."
                       {...field}
+                      value={field.value || ''}
                       disabled={createTaskMutation.isPending}
                     />
                   </FormControl>
@@ -219,7 +222,7 @@ export function CreateTaskDialog({
                     <FormLabel>Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value || undefined}
                       disabled={createTaskMutation.isPending}
                     >
                       <FormControl>
@@ -248,7 +251,7 @@ export function CreateTaskDialog({
                     <FormLabel>Priority</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value || undefined}
                       disabled={createTaskMutation.isPending}
                     >
                       <FormControl>

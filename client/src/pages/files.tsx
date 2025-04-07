@@ -274,16 +274,16 @@ export default function FilesPage() {
           <div className="flex justify-between items-center">
             <CardTitle>Files Library</CardTitle>
             <Select
-              value={selectedProject?.toString() || ""}
+              value={selectedProject?.toString() || "0"}
               onValueChange={(value) =>
-                setSelectedProject(value ? parseInt(value) : null)
+                setSelectedProject(value !== "0" ? parseInt(value) : null)
               }
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Projects</SelectItem>
+                <SelectItem value="0">All Projects</SelectItem>
                 {projects?.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
                     {project.name}
@@ -351,9 +351,9 @@ export default function FilesPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Project</label>
               <Select
-                value={selectedProject?.toString() || ""}
+                value={selectedProject?.toString() || "0"}
                 onValueChange={(value) =>
-                  setSelectedProject(value ? parseInt(value) : null)
+                  setSelectedProject(value !== "0" ? parseInt(value) : null)
                 }
               >
                 <SelectTrigger>

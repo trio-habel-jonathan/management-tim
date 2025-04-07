@@ -24,7 +24,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
   const [onTasks] = useRoute(ROUTES.TASKS);
 
   // Get the current location once
-  const [, location] = useLocation();
+  const [location] = useLocation();
   
   // Get page title from route
   const getPageTitle = () => {
@@ -33,7 +33,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
     if (onTasks) return "Tasks";
     
     // Extract route name from current location
-    if (location && typeof location === 'string') {
+    if (location) {
       const path = location.split('/')[1];
       return path ? path.charAt(0).toUpperCase() + path.slice(1) : "Dashboard";
     }
