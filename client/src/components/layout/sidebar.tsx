@@ -16,6 +16,7 @@ import {
   HelpCircle,
   ChevronLeft,
   PlusIcon,
+  Users,
 } from "lucide-react";
 import { CreateProjectDialog } from "@/components/common/create-project-dialog";
 
@@ -50,6 +51,11 @@ export function Sidebar() {
       title: "Calendar",
       icon: <Calendar className="h-5 w-5" />,
       href: ROUTES.CALENDAR,
+    },
+    {
+      title: "Teams",
+      icon: <Users className="h-5 w-5" />,
+      href: ROUTES.TEAMS,
     },
     {
       title: "Messages",

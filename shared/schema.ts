@@ -31,6 +31,7 @@ export const teams = pgTable("teams", {
   name: text("name").notNull(),
   description: text("description"),
   createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

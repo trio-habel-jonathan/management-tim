@@ -40,6 +40,7 @@ export const ROUTES = {
   CALENDAR: '/calendar',
   CHAT: '/chat',
   FILES: '/files',
+  TEAMS: '/teams',
   SETTINGS: '/settings',
 };
 

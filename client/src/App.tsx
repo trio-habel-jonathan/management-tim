@@ -13,6 +13,7 @@ import TasksPage from "@/pages/tasks";
 import CalendarPage from "@/pages/calendar";
 import ChatPage from "@/pages/chat";
 import FilesPage from "@/pages/files";
+import TeamsPage from "@/pages/teams";
 import SettingsPage from "@/pages/settings";
 import { ROUTES } from "@/lib/constants";
 
@@ -28,6 +29,7 @@ function Router() {
       <Route path={ROUTES.CALENDAR} component={CalendarPage} />
       <Route path={ROUTES.CHAT} component={ChatPage} />
       <Route path={ROUTES.FILES} component={FilesPage} />
+      <Route path={ROUTES.TEAMS} component={TeamsPage} />
       <Route path={ROUTES.SETTINGS} component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>

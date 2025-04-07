@@ -501,10 +501,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to create task" });
       }
       
-      const task = await storage.createTask(req.body);
+      // Process the request body to handle date conversion
+      const taskData = {
+        ...req.body,
+        // Convert date strings to Date objects
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
+      };
+      
+      const task = await storage.createTask(taskData);
       
       res.status(201).json(task);
     } catch (error) {
+      console.error("Task creation error:", error);
       res.status(500).json({ message: "Failed to create task" });
     }
   });
@@ -557,9 +565,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to update task" });
       }
       
-      const updatedTask = await storage.updateTask(task.id, req.body);
+      // Process the request body to handle date conversion
+      const taskData = {
+        ...req.body,
+        // Convert date strings to Date objects
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined
+      };
+      
+      const updatedTask = await storage.updateTask(task.id, taskData);
       res.status(200).json(updatedTask);
     } catch (error) {
+      console.error("Task update error:", error);
       res.status(500).json({ message: "Failed to update task" });
     }
   });
