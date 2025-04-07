@@ -23,6 +23,9 @@ export function Header({ toggleSidebar }: HeaderProps) {
   const [onProjects] = useRoute("/projects/:id");
   const [onTasks] = useRoute(ROUTES.TASKS);
 
+  // Get the current location once
+  const [, location] = useLocation();
+  
   // Get page title from route
   const getPageTitle = () => {
     if (onDashboard) return "Dashboard";
@@ -30,9 +33,11 @@ export function Header({ toggleSidebar }: HeaderProps) {
     if (onTasks) return "Tasks";
     
     // Extract route name from current location
-    const [, location] = useLocation();
-    const path = location.split('/')[1];
-    return path.charAt(0).toUpperCase() + path.slice(1) || "Dashboard";
+    if (location && typeof location === 'string') {
+      const path = location.split('/')[1];
+      return path ? path.charAt(0).toUpperCase() + path.slice(1) : "Dashboard";
+    }
+    return "Dashboard";
   };
 
   return (
