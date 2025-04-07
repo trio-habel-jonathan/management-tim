@@ -17,6 +17,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   
@@ -112,6 +113,7 @@ export class MemStorage implements IStorage {
       email: "admin@teamflow.com",
       fullName: "Admin User",
       role: "admin",
+      userType: "organization",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
     };
     this.users.set(adminUser.id, adminUser);
@@ -132,6 +134,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.email === email,
     );
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
   
   async createUser(user: InsertUser): Promise<User> {
@@ -397,6 +403,10 @@ export class DatabaseStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
   }
   
   async createUser(user: InsertUser): Promise<User> {

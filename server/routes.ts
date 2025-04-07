@@ -15,6 +15,13 @@ import {
 import { z } from "zod";
 import MemoryStore from "memorystore";
 
+// Extend the Express session to include userId
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
+
 const SessionStore = MemoryStore(session);
 
 // Helper function to validate request body using zod schema
@@ -133,13 +140,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
-      const users = Array.from(storage["users"].values()).map(user => {
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      });
+      const users = await storage.getAllUsers();
+      if (!users) {
+        return res.status(200).json([]);
+      }
       
-      res.status(200).json(users);
+      // Filter out sensitive information
+      const sanitizedUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName || user.username,
+        avatar: user.avatar,
+        userType: user.userType || 'normal'
+      }));
+      
+      res.status(200).json(sanitizedUsers);
     } catch (error) {
+      console.error("Error getting users:", error);
       res.status(500).json({ message: "Failed to get users" });
     }
   });

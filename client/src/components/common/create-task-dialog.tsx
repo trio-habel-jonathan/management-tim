@@ -5,7 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { insertTaskSchema, type User } from "@shared/schema";
-import { TASK_STATUSES, TASK_PRIORITIES, TASK_CATEGORIES } from "@/lib/constants";
+import {
+  TASK_STATUSES,
+  TASK_PRIORITIES,
+  TASK_CATEGORIES,
+} from "@/lib/constants";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,10 +49,11 @@ import { CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 // Extend the task schema with validation
-const formSchema = insertTaskSchema.extend({
+const formSchema = insertTaskSchema.omit({ dueDate: true }).extend({
   projectId: z.number().positive({ message: "Project is required" }),
   title: z.string().min(2, { message: "Title must be at least 2 characters" }),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
+  dueDate: z.string().optional(),
 });
 
 interface CreateTaskDialogProps {
@@ -58,11 +63,11 @@ interface CreateTaskDialogProps {
   initialStatus?: string;
 }
 
-export function CreateTaskDialog({ 
-  open, 
-  onOpenChange, 
-  projectId, 
-  initialStatus = "todo" 
+export function CreateTaskDialog({
+  open,
+  onOpenChange,
+  projectId,
+  initialStatus = "todo",
 }: CreateTaskDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -83,7 +88,8 @@ export function CreateTaskDialog({
       status: initialStatus,
       priority: "medium",
       tags: [],
-      order: 0
+      order: 0,
+      dueDate: undefined, // ⬅️ tambahkan ini
     },
   });
 
@@ -95,7 +101,9 @@ export function CreateTaskDialog({
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/tasks?projectId=${projectId}`] });
+        queryClient.invalidateQueries({
+          queryKey: [`/api/tasks?projectId=${projectId}`],
+        });
       }
       toast({
         title: "Task created",
@@ -107,21 +115,22 @@ export function CreateTaskDialog({
       toast({
         variant: "destructive",
         title: "Failed to create task",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     },
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    // If projectId is not provided, use the one from the form
+    // console.log(typeof data.dueDate);
+    // console.log(typeof data.dueDate.toISOString());
     const taskData = {
       ...data,
       projectId: projectId || data.projectId,
-      order: 0, // Set to 0 by default, it will be updated when added to a column
-      // Convert string date to Date object before sending to server
-      dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+      order: 0,
+      dueDate: data.dueDate ? data.dueDate : undefined, // kirim sebagai ISO string
     };
-    
+
     createTaskMutation.mutate(taskData);
   }
 
@@ -129,9 +138,9 @@ export function CreateTaskDialog({
   const toggleTag = (tag: string) => {
     const currentTags = form.getValues().tags || [];
     const newTags = currentTags.includes(tag)
-      ? currentTags.filter(t => t !== tag)
+      ? currentTags.filter((t) => t !== tag)
       : [...currentTags, tag];
-    
+
     form.setValue("tags", newTags);
   };
 
@@ -140,9 +149,7 @@ export function CreateTaskDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
-          <DialogDescription>
-            Add a new task to your project.
-          </DialogDescription>
+          <DialogDescription>Add a new task to your project.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -154,7 +161,7 @@ export function CreateTaskDialog({
                 <FormItem>
                   <FormLabel>Task Title</FormLabel>
                   <FormControl>
-                    <Input 
+                    <Input
                       placeholder="e.g. Design homepage wireframe"
                       {...field}
                       disabled={createTaskMutation.isPending}
@@ -172,10 +179,10 @@ export function CreateTaskDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Details about the task..."
                       {...field}
-                      value={field.value || ''}
+                      value={field.value || ""}
                       disabled={createTaskMutation.isPending}
                     />
                   </FormControl>
@@ -193,7 +200,9 @@ export function CreateTaskDialog({
                     <FormLabel>Project</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
-                      defaultValue={field.value ? field.value.toString() : undefined}
+                      defaultValue={
+                        field.value ? field.value.toString() : undefined
+                      }
                       disabled={createTaskMutation.isPending}
                     >
                       <FormControl>
@@ -261,7 +270,10 @@ export function CreateTaskDialog({
                       </FormControl>
                       <SelectContent>
                         {TASK_PRIORITIES.map((priority) => (
-                          <SelectItem key={priority.value} value={priority.value}>
+                          <SelectItem
+                            key={priority.value}
+                            value={priority.value}
+                          >
                             {priority.label}
                           </SelectItem>
                         ))}
@@ -316,7 +328,7 @@ export function CreateTaskDialog({
                           variant="outline"
                           className={cn(
                             "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
+                            !field.value && "text-muted-foreground",
                           )}
                           disabled={createTaskMutation.isPending}
                         >
@@ -332,7 +344,7 @@ export function CreateTaskDialog({
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
+                        selected={field.value}
                         onSelect={field.onChange}
                         disabled={(date) => date < new Date("1900-01-01")}
                         initialFocus
@@ -352,14 +364,16 @@ export function CreateTaskDialog({
                   <FormLabel>Tags</FormLabel>
                   <div className="flex flex-wrap gap-2">
                     {TASK_CATEGORIES.map((category) => {
-                      const isSelected = form.getValues().tags?.includes(category.value);
+                      const isSelected = form
+                        .getValues()
+                        .tags?.includes(category.value);
                       return (
                         <Badge
                           key={category.value}
                           variant={isSelected ? "default" : "outline"}
                           className={cn(
                             "cursor-pointer",
-                            isSelected ? category.color : ""
+                            isSelected ? category.color : "",
                           )}
                           onClick={() => toggleTag(category.value)}
                         >
@@ -382,10 +396,7 @@ export function CreateTaskDialog({
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit"
-                disabled={createTaskMutation.isPending}
-              >
+              <Button type="submit" disabled={createTaskMutation.isPending}>
                 {createTaskMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
