@@ -18,15 +18,37 @@ interface TeamMembersCardProps {
   teamId?: number;
 }
 
+// User and Team Member interfaces
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  avatar?: string;
+  role?: string;
+}
+
+interface TeamMember {
+  id: number;
+  teamId: number;
+  userId: number;
+  role?: string;
+  user: User;
+}
+
+type TeamMemberOrUser = TeamMember | User;
+
 export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
   const [limit, setLimit] = useState(5);
 
-  const { data: teamMembers, isLoading } = useQuery({
+  const { data: teamMembers, isLoading } = useQuery<TeamMemberOrUser[]>({
     queryKey: [teamId ? `/api/teams/${teamId}/members` : "/api/users"],
     enabled: teamId !== undefined || true,
   });
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role?: string) => {
+    if (!role) return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
+    
     switch (role.toLowerCase()) {
       case "admin":
         return "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300";
@@ -70,11 +92,12 @@ export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
             ))
         ) : (
           <>
-            {teamMembers?.slice(0, limit).map((member) => {
+            {teamMembers && teamMembers.slice(0, limit).map((member: TeamMemberOrUser) => {
               // If we're directly getting users, use the user object
               // If we're getting team members, use the nested user object
-              const user = member.user || member;
-              const role = member.role || user.role;
+              const isTeamMember = 'user' in member && member.user !== undefined;
+              const user = isTeamMember ? (member as TeamMember).user : member as User;
+              const role = isTeamMember ? (member as TeamMember).role : (member as User).role;
 
               return (
                 <div
@@ -101,7 +124,7 @@ export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
                     variant="outline"
                     className={getRoleColor(role)}
                   >
-                    {role}
+                    {role || "Member"}
                   </Badge>
                 </div>
               );
