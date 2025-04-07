@@ -43,8 +43,7 @@ export function LoginForm() {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      const userData = await response.json();
+      const userData = await apiRequest("POST", "/api/auth/login", data);
       login(userData);
       toast({
         title: "Login successful",
