@@ -42,6 +42,7 @@ export const ROUTES = {
   FILES: '/files',
   TEAMS: '/teams',
   SETTINGS: '/settings',
+  ADMIN_USERS: '/admin/users',
 };
 
 // Time periods for analytics

@@ -15,6 +15,7 @@ import ChatPage from "@/pages/chat";
 import FilesPage from "@/pages/files";
 import TeamsPage from "@/pages/teams";
 import SettingsPage from "@/pages/settings";
+import AdminUsersPage from "@/pages/admin/users";
 import { ROUTES } from "@/lib/constants";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path={ROUTES.FILES} component={FilesPage} />
       <Route path={ROUTES.TEAMS} component={TeamsPage} />
       <Route path={ROUTES.SETTINGS} component={SettingsPage} />
+      <Route path={ROUTES.ADMIN_USERS} component={AdminUsersPage} />
       <Route component={NotFound} />
     </Switch>
   );

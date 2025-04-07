@@ -300,13 +300,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Team routes
   app.get("/api/teams", requireAuth, async (req, res) => {
-      console.log(req.session);
     try {
       const teams = await storage.getTeamsByUser(req.session.userId!);
-      res.status(200).json(teams);
+      res.status(200).json(teams || []);
     } catch (error) {
-      console.log("hi anjing");
-      res.status(500).json({ message: error.message });
+      console.error("Error fetching teams:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to get teams";
+      res.status(500).json({ message: errorMessage });
     }
   });
   
@@ -319,7 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(team);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: errorMessage });
     }
   });
   

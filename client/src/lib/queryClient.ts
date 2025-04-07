@@ -8,19 +8,34 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
-  url: string,
+  methodOrUrl: string,
+  urlOrOptions?: string | { method: string; data?: unknown },
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<any> {
+  let method: string;
+  let url: string;
+  let bodyData: unknown | undefined;
+
+  // Check if first parameter is a URL and second is options object
+  if (urlOrOptions && typeof urlOrOptions === 'object') {
+    method = urlOrOptions.method;
+    url = methodOrUrl;
+    bodyData = urlOrOptions.data;
+  } else {
+    method = methodOrUrl;
+    url = urlOrOptions as string;
+    bodyData = data;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: bodyData ? { "Content-Type": "application/json" } : {},
+    body: bodyData ? JSON.stringify(bodyData) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return res.json().catch(() => res);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

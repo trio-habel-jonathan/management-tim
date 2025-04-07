@@ -59,12 +59,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { useEffect } from "react";
 
 // Form schema for adding a team member
 const formSchema = insertTeamMemberSchema.extend({
   userId: z.number().positive({ message: "User is required" }),
   role: z.string().min(1, { message: "Role is required" }),
+  teamId: z.number().positive(),
 });
+
 
 interface TeamManagementDialogProps {
   open: boolean;
@@ -86,11 +89,19 @@ export function TeamManagementDialog({
   const { user: currentUser } = useAuth();
   const [userToRemove, setUserToRemove] = useState<{ id: number, name: string } | null>(null);
 
+
+  useEffect(() => {
+    if (team?.id) {
+      form.setValue("teamId", team.id);
+    }
+  }, [team?.id]);
+
   // Fetch team members
   const { data: teamMembers, isLoading: isLoadingTeamMembers } = useQuery<TeamMemberWithUser[]>({
     queryKey: [`/api/teams/${team?.id}/members`],
     enabled: open && !!team,
   });
+  
 
   // Fetch all users for user selection
   const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
@@ -102,18 +113,19 @@ export function TeamManagementDialog({
   const availableUsers = users?.filter(user => 
     !teamMembers?.some(member => member.userId === user.id)
   ) || [];
-
   // Set defaults
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       role: "member",
+      teamId: team?.id || 0
     },
   });
-
+console.log(team);
   // Add team member mutation
   const addTeamMemberMutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
+      console.log("Calling API with:", data); // <--- Tambahkan ini
       if (!team) return null;
       return apiRequest("POST", `/api/teams/${team.id}/members`, data);
     },
@@ -123,7 +135,12 @@ export function TeamManagementDialog({
         title: "Team member added",
         description: "Team member has been added successfully.",
       });
-      form.reset();
+      console.log("Resetting form with team ID:", team.id); // 👈 DEBUG
+
+      form.reset({
+        teamId: team.id,
+        role: "member",
+      });
     },
     onError: (error) => {
       toast({
@@ -158,7 +175,13 @@ export function TeamManagementDialog({
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    addTeamMemberMutation.mutate(data);
+    console.log(data);
+    if (!team) return;
+
+    addTeamMemberMutation.mutate({
+      ...data,
+      teamId: team.id, // ← tambahin ini!
+    });
   }
 
   // Check if current user is admin of this team
@@ -255,7 +278,17 @@ export function TeamManagementDialog({
             {isAdmin && (
               <TabsContent value="add" className="mt-4">
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={(e) => form.handleSubmit(onSubmit, (errors) => {
+                    console.log("Validation errors:", errors);
+                  })(e)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="teamId"
+                      render={({ field }) => (
+                        <input type="hidden" value={team?.id} {...field} />
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="userId"
