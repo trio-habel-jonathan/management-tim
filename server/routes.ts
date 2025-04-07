@@ -932,7 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const commentId = parseInt(req.params.id);
       
       // Find the comment
-      const comment = Array.from(storage["comments"].values()).find(c => c.id === commentId);
+      const comment = await storage.getComment(commentId);
       
       if (!comment) {
         return res.status(404).json({ message: "Comment not found" });
@@ -1057,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileId = parseInt(req.params.id);
       
       // Find the file
-      const file = Array.from(storage["files"].values()).find(f => f.id === fileId);
+      const file = await storage.getFile(fileId);
       
       if (!file) {
         return res.status(404).json({ message: "File not found" });
@@ -1109,13 +1109,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const messages = await storage.getMessagesByTeam(teamId);
-      res.status(200).json(messages);
+      
+      // Remove password from user objects
+      const messagesWithoutPassword = messages.map(message => {
+        const { password, ...userWithoutPassword } = message.user;
+        return {
+          ...message,
+          user: userWithoutPassword
+        };
+      });
+      
+      res.status(200).json(messagesWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Failed to get messages" });
     }
   });
   
-  app.post("/api/teams/:teamId/messages", requireAuth, validateBody(insertMessageSchema), async (req, res) => {
+  app.post("/api/teams/:teamId/messages", requireAuth, validateBody(insertMessageSchema.omit({ teamId: true, userId: true })), async (req, res) => {
     try {
       const teamId = parseInt(req.params.teamId);
       
@@ -1159,7 +1169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messageId = parseInt(req.params.id);
       
       // Find the message
-      const message = Array.from(storage["messages"].values()).find(m => m.id === messageId);
+      const message = await storage.getMessage(messageId);
       
       if (!message) {
         return res.status(404).json({ message: "Message not found" });

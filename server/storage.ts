@@ -53,17 +53,20 @@ export interface IStorage {
   deleteTask(id: number): Promise<boolean>;
   
   // Comment operations
+  getComment(id: number): Promise<Comment | undefined>;
   getCommentsByTask(taskId: number): Promise<(Comment & { user: User })[]>;
   createComment(comment: InsertComment): Promise<Comment>;
   deleteComment(id: number): Promise<boolean>;
   
   // File operations
+  getFile(id: number): Promise<File | undefined>;
   getFilesByProject(projectId: number): Promise<File[]>;
   getFilesByTask(taskId: number): Promise<File[]>;
   createFile(file: InsertFile): Promise<File>;
   deleteFile(id: number): Promise<boolean>;
   
   // Message operations
+  getMessage(id: number): Promise<Message | undefined>;
   getMessagesByTeam(teamId: number): Promise<(Message & { user: User })[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(id: number): Promise<boolean>;
@@ -332,6 +335,10 @@ export class MemStorage implements IStorage {
   }
   
   // Comment methods
+  async getComment(id: number): Promise<Comment | undefined> {
+    return this.comments.get(id);
+  }
+
   async getCommentsByTask(taskId: number): Promise<(Comment & { user: User })[]> {
     const taskComments = Array.from(this.comments.values()).filter(
       (comment) => comment.taskId === taskId,
@@ -356,6 +363,10 @@ export class MemStorage implements IStorage {
   }
   
   // File methods
+  async getFile(id: number): Promise<File | undefined> {
+    return this.files.get(id);
+  }
+
   async getFilesByProject(projectId: number): Promise<File[]> {
     return Array.from(this.files.values()).filter(
       (file) => file.projectId === projectId,
@@ -380,6 +391,10 @@ export class MemStorage implements IStorage {
   }
   
   // Message methods
+  async getMessage(id: number): Promise<Message | undefined> {
+    return this.messages.get(id);
+  }
+
   async getMessagesByTeam(teamId: number): Promise<(Message & { user: User })[]> {
     const teamMessages = Array.from(this.messages.values()).filter(
       (message) => message.teamId === teamId,
@@ -633,6 +648,11 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Comment methods
+  async getComment(id: number): Promise<Comment | undefined> {
+    const [comment] = await db.select().from(comments).where(eq(comments.id, id));
+    return comment;
+  }
+
   async getCommentsByTask(taskId: number): Promise<(Comment & { user: User })[]> {
     const commentRecords = await db
       .select({
@@ -661,6 +681,11 @@ export class DatabaseStorage implements IStorage {
   }
   
   // File methods
+  async getFile(id: number): Promise<File | undefined> {
+    const [file] = await db.select().from(files).where(eq(files.id, id));
+    return file;
+  }
+
   async getFilesByProject(projectId: number): Promise<File[]> {
     return db
       .select()
@@ -688,6 +713,11 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Message methods
+  async getMessage(id: number): Promise<Message | undefined> {
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message;
+  }
+
   async getMessagesByTeam(teamId: number): Promise<(Message & { user: User })[]> {
     const messageRecords = await db
       .select({
