@@ -131,19 +131,61 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Task Board */}
+      {/* Projects List */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white font-inter">
-            Task Board
+            Projects
           </h2>
-          <Link href={ROUTES.TASKS}>
+          <Link href={ROUTES.PROJECTS}>
             <Button variant="link" className="text-primary">
-              View All Tasks
+              View All Projects
             </Button>
           </Link>
         </div>
-        <KanbanBoard />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects && projects.length > 0 ? (
+            projects.map((project) => (
+              <Card 
+                key={project.id}
+                className="hover:shadow-md transition-shadow duration-200"
+              >
+                <CardContent className="p-0">
+                  <div 
+                    className="h-2" 
+                    style={{ backgroundColor: project.color }}
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold mb-2">{project.name}</h3>
+                    {project.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                        {project.description}
+                      </p>
+                    )}
+                    <Link href={`/projects/${project.id}`}>
+                      <Button className="w-full">View Kanban Board</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card className="col-span-full">
+              <CardContent className="flex flex-col items-center justify-center h-48 p-6">
+                <svg className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="text-lg font-medium mb-1">No Projects Yet</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4 text-center">
+                  Get started by creating your first project to organize tasks and collaborate with your team.
+                </p>
+                <Button onClick={() => setIsCreateProjectOpen(true)}>
+                  Create Project
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Team Members and Project Progress */}

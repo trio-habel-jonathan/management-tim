@@ -43,9 +43,9 @@ export function Sidebar() {
       href: ROUTES.DASHBOARD,
     },
     {
-      title: "Tasks",
+      title: "Projects",
       icon: <CheckSquare className="h-5 w-5" />,
-      href: ROUTES.TASKS,
+      href: ROUTES.PROJECTS,
     },
     {
       title: "Calendar",

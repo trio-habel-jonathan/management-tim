@@ -312,8 +312,15 @@ export function TeamManagementDialog({
                             </FormControl>
                             <SelectContent>
                               {TEAM_ROLES.map((role) => (
-                                <SelectItem key={role.value} value={role.value}>
-                                  {role.label}
+                                <SelectItem 
+                                  key={role.value} 
+                                  value={role.value}
+                                  title={role.description}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{role.label}</span>
+                                    <span className="text-xs text-muted-foreground">{role.description}</span>
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>

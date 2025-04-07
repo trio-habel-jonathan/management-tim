@@ -15,9 +15,9 @@ export const TASK_PRIORITIES = [
 
 // Team member roles
 export const TEAM_ROLES = [
-  { label: "Admin", value: "admin" },
-  { label: "Member", value: "member" },
-  { label: "Guest", value: "guest" }
+  { label: "Admin", value: "admin", description: "Full access to all features, can manage team members and settings" },
+  { label: "Member", value: "member", description: "Can create and edit projects, tasks, and contribute to team activities" },
+  { label: "Guest", value: "guest", description: "View-only access to projects and tasks, cannot edit or create new content" }
 ];
 
 // Categories for task labels

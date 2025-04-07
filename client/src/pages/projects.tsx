@@ -32,6 +32,12 @@ export default function ProjectsPage() {
     enabled: !!projectId,
   });
 
+  // Fetch user's role in the team for permission checking
+  const { data: teamMember } = useQuery({
+    queryKey: [projectId ? `/api/teams/${project?.teamId}/members/current` : null],
+    enabled: !!projectId && !!project?.teamId,
+  });
+
   // Fetch all projects if no projectId is provided
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -113,28 +119,32 @@ export default function ProjectsPage() {
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-inter">
                 {project.name}
               </h1>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="ml-2">
-                    <MoreHorizontal className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setLocation(`/projects/${project.id}/edit`)}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Edit Project
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleDeleteProject(project.id)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete Project
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {teamMember && teamMember.role !== 'guest' && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="ml-2">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setLocation(`/projects/${project.id}/edit`)}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Edit Project
+                    </DropdownMenuItem>
+                    {teamMember.role === 'admin' && (
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteProject(project.id)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Project
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             {project.description && (
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -155,13 +165,15 @@ export default function ProjectsPage() {
             </div>
           </div>
           <div className="mt-4 sm:mt-0">
-            <Button
-              onClick={() => setIsCreateTaskOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Task
-            </Button>
+            {teamMember && teamMember.role !== 'guest' && (
+              <Button
+                onClick={() => setIsCreateTaskOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Task
+              </Button>
+            )}
           </div>
         </div>
 
@@ -204,7 +216,11 @@ export default function ProjectsPage() {
           
           <TabsContent value="analytics" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <TeamMembersCard teamId={project.teamId} />
+              <TeamMembersCard 
+                teamId={project.teamId}
+                showRoleBadges={true} 
+                currentUserRole={teamMember?.role}
+              />
               <div className="lg:col-span-2">
                 <ProjectProgressCard projectId={project.id} />
               </div>

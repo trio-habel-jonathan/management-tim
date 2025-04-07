@@ -16,6 +16,8 @@ import { getInitials } from "@/lib/utils";
 
 interface TeamMembersCardProps {
   teamId?: number;
+  showRoleBadges?: boolean;
+  currentUserRole?: string;
 }
 
 // User and Team Member interfaces
@@ -38,13 +40,22 @@ interface TeamMember {
 
 type TeamMemberOrUser = TeamMember | User;
 
-export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
+export function TeamMembersCard({ teamId, showRoleBadges = true, currentUserRole }: TeamMembersCardProps) {
   const [limit, setLimit] = useState(5);
 
   const { data: teamMembers, isLoading } = useQuery<TeamMemberOrUser[]>({
     queryKey: [teamId ? `/api/teams/${teamId}/members` : "/api/users"],
     enabled: teamId !== undefined || true,
   });
+  
+  // Fetch current user's role in the team if not provided
+  const { data: currentMember } = useQuery({
+    queryKey: [teamId ? `/api/teams/${teamId}/members/current` : null],
+    enabled: teamId !== undefined && !currentUserRole,
+  });
+  
+  // Get the role from props or from the API response
+  const userRole = currentUserRole || (currentMember?.role || "");
 
   const getRoleColor = (role?: string) => {
     if (!role) return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
@@ -52,12 +63,10 @@ export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
     switch (role.toLowerCase()) {
       case "admin":
         return "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300";
-      case "design":
-        return "bg-blue-100 dark:bg-blue-900 text-primary";
-      case "frontend":
+      case "member":
+        return "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300";
+      case "guest":
         return "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300";
-      case "backend":
-        return "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300";
       default:
         return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
     }
@@ -69,9 +78,12 @@ export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
         <CardTitle className="text-lg font-semibold font-inter">
           Team Members
         </CardTitle>
-        <Button variant="ghost" size="icon">
-          <PlusCircle className="h-5 w-5 text-primary" />
-        </Button>
+        {/* Only show add button for admin users */}
+        {userRole === "admin" && (
+          <Button variant="ghost" size="icon">
+            <PlusCircle className="h-5 w-5 text-primary" />
+          </Button>
+        )}
       </CardHeader>
 
       <CardContent className="p-4 space-y-4">
@@ -116,16 +128,19 @@ export function TeamMembersCard({ teamId }: TeamMembersCardProps) {
                         {user.fullName}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {user.role || "Member"}
+                        {user.email}
                       </p>
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={getRoleColor(role)}
-                  >
-                    {role || "Member"}
-                  </Badge>
+                  {/* Only show role badges if enabled */}
+                  {showRoleBadges && (
+                    <Badge
+                      variant="outline"
+                      className={getRoleColor(role)}
+                    >
+                      {role || "Member"}
+                    </Badge>
+                  )}
                 </div>
               );
             })}

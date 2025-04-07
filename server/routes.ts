@@ -293,6 +293,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get current user's role in team
+  app.get("/api/teams/:id/members/current", requireAuth, async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.id);
+      const userId = req.session.userId!;
+      
+      // Check if team exists
+      const team = await storage.getTeam(teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      // Find the team member entry for this user
+      const teamMembers = await storage.getTeamMembers(teamId);
+      const currentMember = teamMembers.find(member => member.userId === userId);
+      
+      if (!currentMember) {
+        return res.status(404).json({ message: "User is not a member of this team" });
+      }
+      
+      res.status(200).json(currentMember);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user role" });
+    }
+  });
+  
   app.post("/api/teams/:id/members", requireAuth, validateBody(insertTeamMemberSchema), async (req, res) => {
     try {
       const teamId = parseInt(req.params.id);
