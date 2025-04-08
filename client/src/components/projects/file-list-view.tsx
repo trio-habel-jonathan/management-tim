@@ -116,7 +116,26 @@ export function FileListView({ projectId }: FileListViewProps) {
   // Handle file download
   const handleDownloadFile = (e: React.MouseEvent, file: File) => {
     e.stopPropagation();
-    window.open(file.url, '_blank');
+    
+    // Create a link element
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    link.target = '_blank';
+    
+    // Add link to body (required for Firefox)
+    document.body.appendChild(link);
+    
+    // Trigger download
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Download started",
+      description: `Downloading ${file.name}...`
+    });
   };
   
   // Handle file upload
@@ -255,7 +274,7 @@ export function FileListView({ projectId }: FileListViewProps) {
                 <Button 
                   variant="outline"
                   className="mt-4"
-                  onClick={() => window.open(selectedFile.url, '_blank')}
+                  onClick={(e) => handleDownloadFile(e, selectedFile)}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download to view
@@ -286,7 +305,7 @@ export function FileListView({ projectId }: FileListViewProps) {
           <div className="flex justify-end gap-2 mt-4">
             <Button 
               variant="outline"
-              onClick={() => window.open(selectedFile.url, '_blank')}
+              onClick={(e) => handleDownloadFile(e, selectedFile)}
             >
               <Download className="h-4 w-4 mr-2" />
               Download

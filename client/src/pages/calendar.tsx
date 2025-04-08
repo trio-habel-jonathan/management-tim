@@ -10,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreateTaskDialog } from "@/components/common/create-task-dialog";
-import { Task } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Project } from "@shared/schema";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   format,
@@ -26,22 +26,25 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
-import { cn, getStatusColor } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { PROJECT_COLORS } from "@/lib/constants";
+import { Link } from "wouter";
 
 export default function CalendarPage() {
-  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "week" | "day">("month");
 
-  // Fetch tasks
-  const { data: tasks } = useQuery<Task[]>({
-    queryKey: ["/api/tasks"],
+  // Fetch projects
+  const { data: projects } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
   });
 
-  // Handler for creating a task with a preselected date
-  const handleCreateTask = (date?: Date) => {
-    // Would pass the date to the dialog
-    setIsCreateTaskOpen(true);
+  // Show project details
+  const showProjectDetails = (project: Project) => {
+    setSelectedProject(project);
+    setProjectDetailsOpen(true);
   };
 
   // Navigate to previous period
@@ -86,12 +89,37 @@ export default function CalendarPage() {
     end: calendarEnd,
   });
 
-  // Get tasks for a specific day
-  const getTasksForDay = (day: Date) => {
-    return tasks?.filter((task) => {
-      if (!task.dueDate) return false;
-      return isSameDay(new Date(task.dueDate), day);
+  // Get projects for a specific day
+  const getProjectsForDay = (day: Date) => {
+    return projects?.filter((project) => {
+      if (!project.startDate && !project.dueDate) return false;
+      
+      // If project has a start date and due date, check if the day falls within that range
+      if (project.startDate && project.dueDate) {
+        const startDate = new Date(project.startDate);
+        const endDate = new Date(project.dueDate);
+        return (day >= startDate && day <= endDate);
+      }
+      
+      // If project only has a start date, show it on that day
+      if (project.startDate) {
+        return isSameDay(new Date(project.startDate), day);
+      }
+      
+      // If project only has a due date, show it on that day
+      if (project.dueDate) {
+        return isSameDay(new Date(project.dueDate), day);
+      }
+      
+      return false;
     }) || [];
+  };
+  
+  // Function to get random color for projects without a color
+  const getProjectColor = (project: Project) => {
+    if (project.color) return project.color;
+    const colorIndex = project.id % PROJECT_COLORS.length;
+    return PROJECT_COLORS[colorIndex];
   };
 
   return (
@@ -144,14 +172,6 @@ export default function CalendarPage() {
               <SelectItem value="day">Day</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Button
-            onClick={() => handleCreateTask()}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Task
-          </Button>
         </div>
       </div>
 
@@ -184,7 +204,7 @@ export default function CalendarPage() {
 
           {/* Calendar days */}
           {days.map((day, dayIdx) => {
-            const dayTasks = getTasksForDay(day);
+            const dayProjects = getProjectsForDay(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
             
             return (
@@ -212,31 +232,25 @@ export default function CalendarPage() {
                     >
                       {format(day, "d")}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 rounded-full"
-                      onClick={() => handleCreateTask(day)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    {dayTasks.slice(0, 3).map((task) => (
+                    {dayProjects.slice(0, 3).map((project) => (
                       <div
-                        key={task.id}
+                        key={project.id}
                         className={cn(
-                          "text-xs p-1 mb-1 rounded truncate",
-                          getStatusColor(task.status)
+                          "text-xs p-1 mb-1 rounded truncate cursor-pointer hover:opacity-80",
+                          "bg-opacity-70 dark:bg-opacity-70"
                         )}
+                        style={{ backgroundColor: getProjectColor(project) }}
+                        onClick={() => showProjectDetails(project)}
                       >
-                        {task.title}
+                        {project.name}
                       </div>
                     ))}
-                    {dayTasks.length > 3 && (
+                    {dayProjects.length > 3 && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 p-1">
-                        +{dayTasks.length - 3} more
+                        +{dayProjects.length - 3} more
                       </div>
                     )}
                   </div>
@@ -267,15 +281,17 @@ export default function CalendarPage() {
                     <div>{format(day, "d")}</div>
                   </div>
                   <div className="mt-2 space-y-1">
-                    {getTasksForDay(day).map((task) => (
+                    {getProjectsForDay(day).map((project) => (
                       <div
-                        key={task.id}
+                        key={project.id}
                         className={cn(
-                          "text-xs p-2 rounded",
-                          getStatusColor(task.status)
+                          "text-xs p-2 rounded cursor-pointer hover:opacity-80",
+                          "bg-opacity-70 dark:bg-opacity-70"
                         )}
+                        style={{ backgroundColor: getProjectColor(project) }}
+                        onClick={() => showProjectDetails(project)}
                       >
-                        {task.title}
+                        {project.name}
                       </div>
                     ))}
                   </div>
@@ -302,26 +318,25 @@ export default function CalendarPage() {
               </div>
               
               <div className="mt-4 space-y-2">
-                <h3 className="font-medium">Tasks</h3>
+                <h3 className="font-medium">Projects</h3>
                 <div className="space-y-2">
-                  {getTasksForDay(currentDate).length > 0 ? (
-                    getTasksForDay(currentDate).map((task) => (
+                  {getProjectsForDay(currentDate).length > 0 ? (
+                    getProjectsForDay(currentDate).map((project) => (
                       <div
-                        key={task.id}
-                        className={cn(
-                          "p-3 rounded-md",
-                          getStatusColor(task.status)
-                        )}
+                        key={project.id}
+                        className="p-3 rounded-md cursor-pointer hover:opacity-90 bg-opacity-70 dark:bg-opacity-70"
+                        style={{ backgroundColor: getProjectColor(project) }}
+                        onClick={() => showProjectDetails(project)}
                       >
-                        <div className="font-medium">{task.title}</div>
-                        {task.description && (
-                          <div className="text-sm mt-1">{task.description}</div>
+                        <div className="font-medium">{project.name}</div>
+                        {project.description && (
+                          <div className="text-sm mt-1">{project.description}</div>
                         )}
                       </div>
                     ))
                   ) : (
                     <div className="text-gray-500 dark:text-gray-400 text-center py-8">
-                      No tasks scheduled for this day
+                      No projects scheduled for this day
                     </div>
                   )}
                 </div>
@@ -331,10 +346,38 @@ export default function CalendarPage() {
         </Card>
       )}
 
-      <CreateTaskDialog
-        open={isCreateTaskOpen}
-        onOpenChange={setIsCreateTaskOpen}
-      />
+      {/* Project Details Dialog */}
+      <Dialog open={projectDetailsOpen} onOpenChange={setProjectDetailsOpen}>
+        <DialogContent className="max-w-md">
+          {selectedProject && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedProject.name}</DialogTitle>
+                {selectedProject.description && (
+                  <DialogDescription>{selectedProject.description}</DialogDescription>
+                )}
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Start Date</p>
+                    <p>{selectedProject.startDate ? format(new Date(selectedProject.startDate), "PP") : "Not set"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Due Date</p>
+                    <p>{selectedProject.dueDate ? format(new Date(selectedProject.dueDate), "PP") : "Not set"}</p>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button asChild>
+                    <Link href={`/projects/${selectedProject.id}`}>View Project</Link>
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

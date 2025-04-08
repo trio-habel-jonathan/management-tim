@@ -73,9 +73,9 @@ export function ProjectAnalytics({ projectId }: ProjectAnalyticsProps) {
     if (!filteredTasks.length) return { completion: 0, inProgress: 0, todo: 0 };
     
     const totalTasks = filteredTasks.length;
-    const completedTasks = filteredTasks.filter(task => task.status === "done").length;
+    const completedTasks = filteredTasks.filter(task => task.status === "complete").length;
     const inProgressTasks = filteredTasks.filter(task => 
-      task.status === "in-progress" || task.status === "in-review"
+      task.status === "in progress" || task.status === "review"
     ).length;
     const todoTasks = filteredTasks.filter(task => task.status === "todo").length;
     
@@ -123,7 +123,7 @@ export function ProjectAnalytics({ projectId }: ProjectAnalyticsProps) {
       const formattedDate = format(date, "MMM dd");
       
       const completedTasksCount = filteredTasks.filter(task => {
-        if (task.status === "done") {
+        if (task.status === "complete") {
           const dueDate = new Date(task.dueDate || new Date());
           return format(dueDate, "MMM dd") === formattedDate;
         }
@@ -197,7 +197,7 @@ export function ProjectAnalytics({ projectId }: ProjectAnalyticsProps) {
               <div className="flex-1">
                 <div className="text-3xl font-bold">{completion}%</div>
                 <div className="text-xs text-muted-foreground">
-                  {filteredTasks.filter(task => task.status === "done").length} of {filteredTasks.length} tasks
+                  {filteredTasks.filter(task => task.status === "complete").length} of {filteredTasks.length} tasks
                 </div>
               </div>
               <div className="w-12 h-12 rounded-full border-8 border-blue-500 dark:border-blue-600" style={{ borderRightColor: 'transparent' }}></div>
@@ -216,7 +216,7 @@ export function ProjectAnalytics({ projectId }: ProjectAnalyticsProps) {
                 <div className="text-3xl font-bold">{inProgress}%</div>
                 <div className="text-xs text-muted-foreground">
                   {filteredTasks.filter(task => 
-                    task.status === "in-progress" || task.status === "in-review"
+                    task.status === "in progress" || task.status === "review"
                   ).length} of {filteredTasks.length} tasks
                 </div>
               </div>
