@@ -14,6 +14,8 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import MemoryStore from "memorystore";
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Extend the Express session to include userId
 declare module 'express-session' {

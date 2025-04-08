@@ -1,11 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
+app.listen(1000, () => {
+  console.log("DATABASE_URL:", process.env.DATABASE_URL);
+});
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
