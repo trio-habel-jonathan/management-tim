@@ -139,7 +139,7 @@ export function TaskDetailDialog({ task, open, onClose }: TaskDetailDialogProps)
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Created</div>
                 <div className="text-sm mt-1">
-                  {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                  {new Date(task.createdAt).toLocaleDateString()}
                 </div>
               </div>
             </div>

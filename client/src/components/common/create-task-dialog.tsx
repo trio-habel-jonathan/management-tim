@@ -49,7 +49,7 @@ import { CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 // Extend the task schema with validation
-const formSchema = insertTaskSchema.omit({ dueDate: true }).extend({
+const formSchema = insertTaskSchema.extend({
   projectId: z.number().positive({ message: "Project is required" }),
   title: z.string().min(2, { message: "Title must be at least 2 characters" }),
   tags: z.array(z.string()).optional(),
@@ -122,13 +122,11 @@ export function CreateTaskDialog({
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    // console.log(typeof data.dueDate);
-    // console.log(typeof data.dueDate.toISOString());
     const taskData = {
       ...data,
       projectId: projectId || data.projectId,
       order: 0,
-      dueDate: data.dueDate ? data.dueDate : undefined, // kirim sebagai ISO string
+      dueDate: data.dueDate ? data.dueDate : undefined,
     };
 
     createTaskMutation.mutate(taskData);
@@ -344,8 +342,8 @@ export function CreateTaskDialog({
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => field.onChange(date ? date.toISOString() : undefined)}
                         disabled={(date) => date < new Date("1900-01-01")}
                         initialFocus
                       />
