@@ -312,9 +312,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/teams", requireAuth, validateBody(insertTeamSchema), async (req, res) => {
     try {
+      // Get current user role
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only admin users can create teams
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ message: "Only admin users can create teams" });
+      }
+      
       const team = await storage.createTeam({
         ...req.body,
         createdBy: req.session.userId!,
+      });
+      
+      // Add the creator as an admin of the team
+      await storage.addTeamMember({
+        teamId: team.id,
+        userId: req.session.userId!,
+        role: "admin"
       });
       
       res.status(201).json(team);
@@ -1024,8 +1042,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/files", requireAuth, validateBody(insertFileSchema), async (req, res) => {
+  app.post("/api/files", requireAuth, async (req, res) => {
     try {
+      // Log the request body for debugging
+      console.log("File upload request body:", JSON.stringify(req.body));
+      
       const { projectId } = req.body;
       
       // Check if project exists
@@ -1042,10 +1063,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to upload file" });
       }
       
-      const file = await storage.createFile({
+      // Manually add uploadedBy to req.body
+      const fileData = {
         ...req.body,
-        uploadedBy: req.session.userId!,
-      });
+        uploadedBy: req.session.userId
+      };
+      
+      // Validate after adding userId
+      const validation = insertFileSchema.safeParse(fileData);
+      if (!validation.success) {
+        console.log("Validation error:", validation.error.format());
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: validation.error.errors 
+        });
+      }
+      
+      const file = await storage.createFile(fileData);
       
       res.status(201).json(file);
     } catch (error) {

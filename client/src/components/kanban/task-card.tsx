@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,6 +25,7 @@ import { cn, getInitials, truncate, isOverdue, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditTaskDialog } from "@/components/common/edit-task-dialog";
 import { DeleteTaskDialog } from "@/components/common/delete-task-dialog";
+import { TaskDetailDialog } from "@/components/tasks/task-detail-dialog";
 
 interface TaskCardProps {
   task: Task;
@@ -33,6 +35,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Set up drag source
   const [{ isDragging }, drag] = useDrag({
@@ -57,6 +60,14 @@ export function TaskCard({ task }: TaskCardProps) {
 
   // Check if task is overdue
   const taskIsOverdue = task.dueDate ? isOverdue(task.dueDate) : false;
+  
+  // Get comment count for task
+  const { data: comments = [] } = useQuery({
+    queryKey: [`/api/tasks/${task.id}/comments`],
+    enabled: !!task.id,
+  });
+  
+  const commentCount = comments.length;
 
   return (
     <>
@@ -67,6 +78,7 @@ export function TaskCard({ task }: TaskCardProps) {
           isDragging && "opacity-50"
         )}
         style={{ opacity: isDragging ? 0.5 : 1 }}
+        onClick={() => setIsDetailOpen(true)}
       >
         <div className="flex justify-between items-start mb-2">
           {primaryTag ? (
@@ -80,19 +92,35 @@ export function TaskCard({ task }: TaskCardProps) {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <button 
+                onClick={(e) => e.stopPropagation()} 
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                setIsEditOpen(true);
+              }}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit Task
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                setIsDetailOpen(true);
+              }}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                View Details
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-red-600 dark:text-red-400" 
-                onClick={() => setIsDeleteOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDeleteOpen(true);
+                }}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Task
@@ -108,7 +136,10 @@ export function TaskCard({ task }: TaskCardProps) {
         {task.description && (
           <p
             className="text-xs text-gray-500 dark:text-gray-400 mb-3 cursor-pointer"
-            onClick={() => setShowFullDescription(!showFullDescription)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowFullDescription(!showFullDescription);
+            }}
           >
             {showFullDescription
               ? task.description
@@ -117,7 +148,7 @@ export function TaskCard({ task }: TaskCardProps) {
         )}
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             {isLoadingAssignee ? (
               <Skeleton className="h-6 w-6 rounded-full" />
             ) : assignee ? (
@@ -131,6 +162,13 @@ export function TaskCard({ task }: TaskCardProps) {
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-xs">NA</AvatarFallback>
               </Avatar>
+            )}
+            
+            {commentCount > 0 && (
+              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                <MessageSquare className="h-3 w-3 mr-1" />
+                <span>{commentCount}</span>
+              </div>
             )}
           </div>
 
@@ -181,6 +219,13 @@ export function TaskCard({ task }: TaskCardProps) {
           task={task}
         />
       )}
+      
+      {/* Task Detail Dialog with Comments */}
+      <TaskDetailDialog
+        task={task}
+        open={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+      />
     </>
   );
 }
