@@ -9,6 +9,9 @@ import { KanbanBoard } from "@/components/kanban/board";
 import { TeamMembersCard } from "@/components/dashboard/team-members-card";
 import { ProjectProgressCard } from "@/components/dashboard/project-progress-card";
 import { CreateTaskDialog } from "@/components/common/create-task-dialog";
+import { TaskListView } from "@/components/projects/task-list-view";
+import { FileListView } from "@/components/projects/file-list-view";
+import { ProjectAnalytics } from "@/components/projects/project-analytics";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Project } from "@shared/schema";
@@ -191,38 +194,29 @@ export default function ProjectsPage() {
           </TabsContent>
           
           <TabsContent value="list" className="mt-0">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Task List</h3>
-                {/* Task list would go here */}
-                <p className="text-gray-500 dark:text-gray-400">
-                  View all tasks in list format.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Import TaskListView component at top of file */}
+            <TaskListView projectId={project.id} />
           </TabsContent>
           
           <TabsContent value="files" className="mt-0">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Project Files</h3>
-                {/* File list would go here */}
-                <p className="text-gray-500 dark:text-gray-400">
-                  No files uploaded yet.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Import FileListView component at top of file */}
+            <FileListView projectId={project.id} />
           </TabsContent>
           
           <TabsContent value="analytics" className="mt-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <TeamMembersCard 
-                teamId={project.teamId}
-                showRoleBadges={true} 
-                currentUserRole={teamMember?.role}
-              />
-              <div className="lg:col-span-2">
-                <ProjectProgressCard projectId={project.id} />
+            <div className="space-y-6">
+              {/* Import ProjectAnalytics component at top of file */}
+              <ProjectAnalytics projectId={project.id} />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <TeamMembersCard 
+                  teamId={project.teamId}
+                  showRoleBadges={true} 
+                  currentUserRole={teamMember?.role}
+                />
+                <div className="lg:col-span-2">
+                  <ProjectProgressCard projectId={project.id} />
+                </div>
               </div>
             </div>
           </TabsContent>

@@ -46,7 +46,11 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
     mutationFn: async (content: string) => {
       return apiRequest(`/api/tasks/${taskId}/comments`, {
         method: "POST",
-        data: { content }
+        data: {
+          content,
+          taskId,        // ⬅️ tambahkan ini
+          userId: user.id // ⬅️ dan ini
+        }
       });
     },
     onSuccess: () => {
