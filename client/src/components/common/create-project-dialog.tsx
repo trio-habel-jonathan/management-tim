@@ -80,8 +80,7 @@ export function CreateProjectDialog({ open, onOpenChange, teams }: CreateProject
     mutationFn: async (data: z.infer<typeof formSchema>) => {
       return apiRequest("POST", "/api/projects", data);
     },
-    onSuccess: async (response) => {
-      const data = await response.json();
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
         title: "Project created",
@@ -143,6 +142,7 @@ export function CreateProjectDialog({ open, onOpenChange, teams }: CreateProject
                     <Textarea 
                       placeholder="Brief description of the project..."
                       {...field}
+                      value={field.value || ''}
                       disabled={createProjectMutation.isPending}
                     />
                   </FormControl>

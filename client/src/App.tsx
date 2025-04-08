@@ -15,7 +15,7 @@ import ChatPage from "@/pages/chat";
 import FilesPage from "@/pages/files";
 import TeamsPage from "@/pages/teams";
 import SettingsPage from "@/pages/settings";
-import AdminUsersPage from "@/pages/admin/users";
+import AdminUsersPage from "@/pages/admin/users-fix";
 import { ROUTES } from "@/lib/constants";
 
 function Router() {

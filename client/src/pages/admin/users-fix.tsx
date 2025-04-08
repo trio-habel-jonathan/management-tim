@@ -25,6 +25,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -54,8 +55,8 @@ const createUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  fullName: z.string().min(3, "Full name must be at least 3 characters"),
-  role: z.string(),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  role: z.string().default("member"),
   avatar: z.string().optional(),
 });
 
@@ -63,12 +64,13 @@ const editUserSchema = z.object({
   id: z.number(),
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
-  fullName: z.string().min(3, "Full name must be at least 3 characters"),
+  password: z.string().optional(),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
   role: z.string(),
   avatar: z.string().optional(),
 });
 
+// Form types
 type CreateUserForm = z.infer<typeof createUserSchema>;
 type EditUserForm = z.infer<typeof editUserSchema>;
 
@@ -96,7 +98,7 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: "User created successfully",
@@ -277,7 +279,7 @@ function EditUserDialog({
         username: user.username,
         email: user.email,
         password: "",
-        fullName: user.fullName,
+        fullName: user.fullName || "",
         role: user.role || "member",
         avatar: user.avatar || "",
       });
@@ -292,14 +294,14 @@ function EditUserDialog({
         delete updateData.password;
       }
       
-      const res = await apiRequest(`/api/admin/users/${data.id}`, {
-        method: "PATCH",
+      const res = await apiRequest(`/api/users/${data.id}`, {
+        method: "PUT",
         data: updateData,
       });
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -464,13 +466,13 @@ function DeleteUserDialog({
   const deleteUserMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("No user selected");
-      const res = await apiRequest(`/api/admin/users/${user.id}`, {
+      const res = await apiRequest(`/api/users/${user.id}`, {
         method: "DELETE",
       });
       return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -504,8 +506,8 @@ function DeleteUserDialog({
 
         <div className="flex items-center p-4 border rounded-md bg-red-50 dark:bg-red-900/20">
           <Avatar className="h-10 w-10 mr-4">
-            <AvatarImage src={user.avatar || ""} alt={user.fullName} />
-            <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.avatar || ""} alt={user.fullName || ''} />
+            <AvatarFallback>{user.fullName ? user.fullName.charAt(0) : ''}</AvatarFallback>
           </Avatar>
           <div>
             <p className="font-medium">{user.fullName}</p>
@@ -548,7 +550,7 @@ export default function AdminUsersPage() {
   const [showSystemUsers, setShowSystemUsers] = useState(false);
 
   // Fetch users
-  const { data: users, isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
     enabled: currentUser?.role === "admin",
   });
@@ -581,8 +583,8 @@ export default function AdminUsersPage() {
 
   // Filter out the system users unless checkbox is checked
   const filteredUsers = showSystemUsers 
-    ? users || [] 
-    : (users || []).filter(u => u.role !== 'system');
+    ? users 
+    : users.filter((u: User) => u.role !== 'system');
 
   // Get role badge color
   const getRoleBadgeColor = (role: string) => {
@@ -649,12 +651,12 @@ export default function AdminUsersPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredUsers.map((user) => (
+                      filteredUsers.map((user: User) => (
                         <TableRow key={user.id}>
                           <TableCell className="flex items-center">
                             <Avatar className="h-10 w-10 mr-2">
-                              <AvatarImage src={user.avatar || ""} alt={user.fullName} />
-                              <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+                              <AvatarImage src={user.avatar || ""} alt={user.fullName || ''} />
+                              <AvatarFallback>{user.fullName ? user.fullName.charAt(0) : ''}</AvatarFallback>
                             </Avatar>
                             <div>
                               <div className="font-medium">{user.fullName}</div>
